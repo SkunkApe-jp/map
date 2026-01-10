@@ -1,0 +1,5 @@
+{
+  "name": "MindSpark AI",
+  "description": "An intelligent mind-mapping tool that uses Gemini to transform topics into interactive, hierarchical visualizations with native D3.js rendering.",
+  "requestFramePermissions": []
+}
