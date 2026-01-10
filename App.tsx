@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search, Sparkles, Download, RotateCcw, Plus, MousePointer2, Settings as SettingsIcon, X } from 'lucide-react';
+import { Search, Sparkles, RotateCcw, MousePointer2, Settings as SettingsIcon, X, Globe, Zap, ArrowRight, Ship as MapIcon } from 'lucide-react';
 import { MindMapNode, AISettings } from './types';
 import { generateMindMap, expandNode } from './services/aiService';
 import MindMapViz from './components/MindMapViz';
@@ -15,7 +15,10 @@ const DEFAULT_SETTINGS: AISettings = {
 const App: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mindMapData, setMindMapData] = useState<MindMapNode | null>(null);
+  const [mindMapData, setMindMapData] = useState<MindMapNode | null>(() => {
+    const saved = localStorage.getItem('mindspark_active_map');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<AISettings>(() => {
@@ -26,6 +29,14 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('mindspark_settings', JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    if (mindMapData) {
+      localStorage.setItem('mindspark_active_map', JSON.stringify(mindMapData));
+    } else {
+      localStorage.removeItem('mindspark_active_map');
+    }
+  }, [mindMapData]);
 
   const handleGenerate = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -71,48 +82,50 @@ const App: React.FC = () => {
   }, [isLoading, settings]);
 
   const reset = () => {
-    setMindMapData(null);
-    setTopic('');
-    setError(null);
+    if(confirm("Are you sure you want to clear this mind map?")) {
+      setMindMapData(null);
+      setTopic('');
+      setError(null);
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-50 relative">
-      <header className="z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Sparkles className="w-5 h-5 text-white" />
+    <div className="flex flex-col h-screen w-screen bg-slate-50 relative selection:bg-blue-100">
+      <header className="z-20 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-white border border-slate-200 p-2 rounded-xl shadow-sm">
+            <MapIcon className="w-5 h-5 text-slate-300" strokeWidth={1.5} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-800">MindSpark <span className="text-blue-600">AI</span></h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Map</h1>
         </div>
 
-        <form onSubmit={handleGenerate} className="flex-1 max-w-2xl mx-12 hidden md:flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <form onSubmit={handleGenerate} className="flex-1 max-w-2xl mx-12 hidden md:flex items-center gap-3">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="What topic do you want to map out?"
-              className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              placeholder="Enter a concept, topic, or problem..."
+              className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-11 pr-4 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm font-medium outline-none"
             />
           </div>
           <button
             type="submit"
             disabled={isLoading || !topic.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-500/20"
+            className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-8 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-slate-200"
           >
-            {isLoading ? 'Generating...' : 'Generate'}
+            {isLoading ? 'Thinking...' : 'Generate'}
           </button>
         </form>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {mindMapData && (
-            <button onClick={reset} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors" title="Reset">
+            <button onClick={reset} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title="Clear Map">
               <RotateCcw className="w-5 h-5" />
             </button>
           )}
-          <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors" title="Settings">
+          <button onClick={() => setShowSettings(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title="Settings">
             <SettingsIcon className="w-5 h-5" />
           </button>
         </div>
@@ -126,52 +139,66 @@ const App: React.FC = () => {
             onNodeDoubleClick={handleNodeDoubleClick}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
-            <div className="max-w-md space-y-6">
-              <div className="inline-flex p-4 bg-blue-50 rounded-3xl mb-4">
-                <Sparkles className="w-12 h-12 text-blue-500" />
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
+            <div className="max-w-2xl w-full text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="inline-flex px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">
+                Next-Gen Visualization
               </div>
-              <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-                AI Powered <span className="text-blue-600">Mind Mapping</span>
+              <h2 className="text-6xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+                Visualize your <span className="text-slate-400 bg-clip-text">complex thoughts</span> effortlessly.
               </h2>
-              <p className="text-slate-500 text-lg">
-                Enter a topic to generate an interactive hierarchy. Now supports Gemini and OpenAI compatible endpoints.
+              <p className="text-slate-500 text-xl font-medium max-w-xl mx-auto leading-relaxed">
+                Harness AI to transform any topic into a beautiful, hierarchical network. Double-click to dive deeper into any node.
               </p>
               
-              <form onSubmit={handleGenerate} className="md:hidden space-y-3">
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Enter topic..."
-                  className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 shadow-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading || !topic.trim()}
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg"
-                >
-                  {isLoading ? 'Thinking...' : 'Start Building'}
-                </button>
-              </form>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                 {['The History of AI', 'Photosynthesis', 'Quantum Computing'].map(t => (
+                   <button 
+                    key={t}
+                    onClick={() => { setTopic(t); handleGenerate(); }}
+                    className="flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-700 font-bold hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                   >
+                     {t}
+                     <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-600" />
+                   </button>
+                 ))}
+              </div>
+
+              <div className="grid grid-cols-3 gap-8 pt-12 border-t border-slate-200/60 max-w-lg mx-auto">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Globe className="w-5 h-5" /></div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Multi-Model</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><Zap className="w-5 h-5" /></div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Instant Feed</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><MousePointer2 className="w-5 h-5" /></div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Interactive</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {isLoading && (
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center">
-            <div className="loading-pulse"></div>
-            <Sparkles className="w-10 h-10 text-blue-600 relative z-10 animate-bounce" />
-            <p className="mt-8 text-slate-800 font-medium animate-pulse">
-              AI is structuring your ideas using {settings.provider}...
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[3px] z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="relative">
+              <div className="loading-pulse" style={{ width: '80px', height: '80px', top: '-20px', left: '-20px' }}></div>
+              <MapIcon className="w-12 h-12 text-slate-300 relative z-10 animate-bounce" />
+            </div>
+            <p className="mt-8 text-slate-900 font-bold text-lg tracking-tight">
+              Generating your vision...
             </p>
+            <p className="text-slate-400 text-sm font-medium mt-1">Using {settings.provider === 'gemini' ? 'Google Gemini 3' : settings.openaiModel}</p>
           </div>
         )}
 
         {error && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-red-50 text-red-600 border border-red-200 px-6 py-3 rounded-full shadow-lg flex items-center gap-3 z-50">
-            <span className="text-sm font-medium">{error}</span>
-            <button onClick={() => setError(null)} className="hover:text-red-800 font-bold text-lg">&times;</button>
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl shadow-red-200 flex items-center gap-4 z-[60] animate-in slide-in-from-bottom-4">
+            <span className="text-sm font-bold">{error}</span>
+            <button onClick={() => setError(null)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">&times;</button>
           </div>
         )}
       </main>
@@ -179,80 +206,85 @@ const App: React.FC = () => {
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowSettings(false)}></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">AI Configuration</h3>
-              <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <X className="w-5 h-5" />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onClick={() => setShowSettings(false)}></div>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 fade-in duration-300">
+            <div className="px-10 py-8 flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">AI Settings</h3>
+                <p className="text-slate-500 text-sm font-medium">Configure your intelligent core.</p>
+              </div>
+              <button onClick={() => setShowSettings(false)} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-400 transition-all">
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Provider</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, provider: 'gemini' }))}
-                    className={`py-2 px-4 rounded-lg border text-sm font-medium transition-all ${settings.provider === 'gemini' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
-                  >
-                    Gemini
-                  </button>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, provider: 'openai' }))}
-                    className={`py-2 px-4 rounded-lg border text-sm font-medium transition-all ${settings.provider === 'openai' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
-                  >
-                    OpenAI Compatible
-                  </button>
+            <div className="px-10 pb-10 space-y-8">
+              <div className="space-y-3">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Model Provider</label>
+                <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
+                  {['gemini', 'openai'].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setSettings(s => ({ ...s, provider: p as any }))}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all capitalize ${settings.provider === p ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {settings.provider === 'openai' && (
-                <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Base Endpoint</label>
-                    <input
-                      type="text"
-                      value={settings.openaiEndpoint}
-                      onChange={e => setSettings(s => ({ ...s, openaiEndpoint: e.target.value }))}
-                      placeholder="https://api.openai.com/v1"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
+              <div className="space-y-6">
+                {settings.provider === 'openai' ? (
+                  <div className="space-y-5 animate-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Base Endpoint</label>
+                      <input
+                        type="text"
+                        value={settings.openaiEndpoint}
+                        onChange={e => setSettings(s => ({ ...s, openaiEndpoint: e.target.value }))}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-medium focus:border-blue-500 outline-none transition-all"
+                        placeholder="https://api.openai.com/v1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Model ID</label>
+                        <input
+                          type="text"
+                          value={settings.openaiModel}
+                          onChange={e => setSettings(s => ({ ...s, openaiModel: e.target.value }))}
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-medium focus:border-blue-500 outline-none transition-all"
+                          placeholder="gpt-4o"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">API Key</label>
+                        <input
+                          type="password"
+                          value={settings.openaiApiKey}
+                          onChange={e => setSettings(s => ({ ...s, openaiApiKey: e.target.value }))}
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-medium focus:border-blue-500 outline-none transition-all"
+                          placeholder="sk-..."
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model Name</label>
-                    <input
-                      type="text"
-                      value={settings.openaiModel}
-                      onChange={e => setSettings(s => ({ ...s, openaiModel: e.target.value }))}
-                      placeholder="gpt-4o-mini"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
+                ) : (
+                  <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 flex gap-4 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="bg-blue-600 p-2.5 rounded-xl h-fit shadow-lg shadow-blue-200"><Zap className="w-5 h-5 text-white" /></div>
+                    <div>
+                      <h4 className="font-bold text-blue-900 mb-1">Standard Gemini Access</h4>
+                      <p className="text-blue-600/70 text-sm font-medium leading-snug">The app is using the pre-configured system key. No manual configuration required for standard usage.</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">API Key</label>
-                    <input
-                      type="password"
-                      value={settings.openaiApiKey}
-                      onChange={e => setSettings(s => ({ ...s, openaiApiKey: e.target.value }))}
-                      placeholder="sk-..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {settings.provider === 'gemini' && (
-                <p className="text-sm text-slate-500 italic bg-blue-50 p-3 rounded-lg border border-blue-100">
-                  Using system-configured Gemini API Key. No additional setup required.
-                </p>
-              )}
-            </div>
-            <div className="px-6 py-4 bg-slate-50 text-right">
               <button
                 onClick={() => setShowSettings(false)}
-                className="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200"
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-2xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all mt-4"
               >
-                Save & Close
+                Apply Changes
               </button>
             </div>
           </div>

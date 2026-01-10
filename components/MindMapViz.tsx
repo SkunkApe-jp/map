@@ -1,6 +1,7 @@
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
+import { Maximize, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { MindMapNode } from '../types';
 
 interface Props {
@@ -12,16 +13,36 @@ interface Props {
 const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<SVGGElement>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
-  // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
-    };
+    const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const recenter = useCallback(() => {
+    if (!svgRef.current || !zoomRef.current) return;
+    const svg = d3.select(svgRef.current);
+    const initialTransform = d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8);
+    svg.transition().duration(750).call(zoomRef.current.transform, initialTransform);
+  }, [dimensions]);
+
+  const zoomIn = () => d3.select(svgRef.current!).transition().call(zoomRef.current!.scaleBy, 1.3);
+  const zoomOut = () => d3.select(svgRef.current!).transition().call(zoomRef.current!.scaleBy, 0.7);
+
+  const exportSVG = () => {
+    if (!svgRef.current) return;
+    const svgData = new XMLSerializer().serializeToString(svgRef.current);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "mindmap.svg";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (!svgRef.current || !data) return;
@@ -29,30 +50,25 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
     const svg = d3.select(svgRef.current);
     const g = d3.select(containerRef.current);
 
-    // Setup zoom
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 3])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
-      });
+      .scaleExtent([0.05, 5])
+      .on('zoom', (event) => g.attr('transform', event.transform));
 
+    zoomRef.current = zoom;
     svg.call(zoom);
 
-    // Initial positioning
-    const initialTransform = d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8);
-    svg.call(zoom.transform, initialTransform);
+    // Initial position if first load
+    if (!g.attr('transform')) {
+      svg.call(zoom.transform, d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8));
+    }
 
-    // Tree layout
-    const treeLayout = d3.tree<MindMapNode>()
-      .nodeSize([60, 240]); // spacing between nodes
-
+    const treeLayout = d3.tree<MindMapNode>().nodeSize([70, 280]);
     const root = d3.hierarchy(data);
     treeLayout(root);
 
-    // Color scale
     const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
-    // Links (Curves)
+    // Links
     const linkGenerator = d3.linkHorizontal<any, any>()
       .x(d => d.y)
       .y(d => d.x);
@@ -64,11 +80,11 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
       .append('path')
       .attr('class', 'link')
       .attr('fill', 'none')
-      .attr('stroke', '#cbd5e1')
+      .attr('stroke', '#e2e8f0')
       .attr('stroke-width', 2)
       .merge(links as any)
       .transition()
-      .duration(500)
+      .duration(600)
       .attr('d', linkGenerator as any);
 
     links.exit().remove();
@@ -90,71 +106,81 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
         onNodeDoubleClick(d.data);
       });
 
-    // Node Rects
+    // Node Background
     nodeEnter.append('rect')
-      .attr('rx', 8)
-      .attr('ry', 8)
+      .attr('rx', 12)
+      .attr('ry', 12)
       .attr('x', -10)
-      .attr('y', -20)
-      .attr('width', d => Math.max(120, d.data.text.length * 8 + 20))
-      .attr('height', 40)
-      .attr('fill', d => d.depth === 0 ? '#1e293b' : 'white')
-      .attr('stroke', d => d.depth === 0 ? '#1e293b' : colorScale(d.depth.toString()))
+      .attr('y', -22)
+      .attr('width', d => Math.max(140, d.data.text.length * 9 + 24))
+      .attr('height', 44)
+      .attr('fill', d => d.depth === 0 ? '#0f172a' : 'white')
+      .attr('stroke', d => d.depth === 0 ? '#0f172a' : colorScale(d.depth.toString()))
       .attr('stroke-width', 2)
-      .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.05))')
-      .attr('class', 'node-transition group-hover:stroke-blue-500');
+      .attr('class', 'node-transition filter drop-shadow-sm group-hover:drop-shadow-md');
 
-    // Node Text
+    // Node Label
     nodeEnter.append('text')
       .attr('dy', '0.35em')
-      .attr('x', 10)
+      .attr('x', 12)
       .attr('y', 0)
       .attr('text-anchor', 'start')
-      .attr('fill', d => d.depth === 0 ? 'white' : '#334155')
-      .style('font-size', d => d.depth === 0 ? '14px' : '12px')
-      .style('font-weight', d => d.depth === 0 ? '600' : '400')
+      .attr('fill', d => d.depth === 0 ? '#f8fafc' : '#1e293b')
+      .style('font-size', d => d.depth === 0 ? '15px' : '13px')
+      .style('font-weight', d => d.depth === 0 ? '700' : '500')
       .style('pointer-events', 'none')
       .text(d => d.data.text);
 
-    // Expand/Collapse Hint
+    // Expansion Badge
     nodeEnter.filter(d => !!d.data.children?.length)
       .append('circle')
-      .attr('r', 4)
-      .attr('cx', d => Math.max(120, d.data.text.length * 8 + 20) - 10)
+      .attr('r', 5)
+      .attr('cx', d => Math.max(140, d.data.text.length * 9 + 24) - 10)
       .attr('cy', 0)
-      .attr('fill', '#94a3b8');
+      .attr('fill', d => colorScale(d.depth.toString()));
 
     const nodeUpdate = nodeEnter.merge(nodes as any);
-
     nodeUpdate.transition()
-      .duration(500)
+      .duration(600)
       .attr('transform', d => `translate(${d.y},${d.x})`);
 
     nodes.exit().transition()
-      .duration(500)
-      .attr('transform', d => `translate(${d.y},${d.x})`)
+      .duration(400)
       .style('opacity', 0)
       .remove();
 
   }, [data, dimensions, onNodeClick, onNodeDoubleClick]);
 
   return (
-    <div className="w-full h-full bg-slate-50 relative overflow-hidden">
+    <div className="w-full h-full bg-[#fbfcfd] relative overflow-hidden">
       <svg
         ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="w-full h-full block"
+        className="w-full h-full block touch-none"
       >
         <g ref={containerRef} />
       </svg>
       
-      {/* Interaction Guide */}
-      <div className="absolute bottom-6 right-6 bg-white/80 backdrop-blur-sm border border-slate-200 px-4 py-2 rounded-lg text-xs text-slate-500 flex flex-col gap-1 shadow-sm">
-        <p>🖱️ Drag to pan</p>
-        <p>☸️ Scroll to zoom</p>
-        <p>👆 Click to toggle children</p>
-        <p>✌️ Double-click to expand with AI</p>
+      {/* Viewport Controls */}
+      <div className="absolute top-6 right-6 flex flex-col gap-2">
+        <button onClick={zoomIn} className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 transition-all" title="Zoom In">
+          <ZoomIn className="w-5 h-5" />
+        </button>
+        <button onClick={zoomOut} className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 transition-all" title="Zoom Out">
+          <ZoomOut className="w-5 h-5" />
+        </button>
+        <button onClick={recenter} className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 transition-all" title="Recenter">
+          <Maximize className="w-5 h-5" />
+        </button>
+        <button onClick={exportSVG} className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 transition-all" title="Export as SVG">
+          <Download className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md border border-slate-200 p-4 rounded-2xl text-[11px] text-slate-400 font-medium shadow-xl flex gap-4">
+        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-200" /> Pan / Drag</div>
+        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-400" /> Double-click to AI Expand</div>
       </div>
     </div>
   );

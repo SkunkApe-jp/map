@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# MindSpark AI 🧠✨
 
-This contains everything you need to run your app locally.
+An intelligent mind-mapping tool that transforms topics into interactive, hierarchical visualizations using Gemini (or OpenAI) and D3.js.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1VwD6KA_keYmoKe5lpZjEolweRTDLb6Mt
+## 🚀 Features
+- **AI-Powered Generation**: Instantly create complex maps from a single prompt.
+- **Deep Exploration**: Double-click any node to expand it further using AI.
+- **Native D3 Visualization**: High-performance, zoomable, and draggable canvas.
+- **Multi-Provider**: Supports Google Gemini and OpenAI-compatible endpoints.
+- **Export**: Save your mind maps as SVG or JSON.
 
-## Run Locally
+## 🛠️ Deployment to GitHub Pages
 
-**Prerequisites:**  Node.js
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
+2. **Configure Environment**:
+   Ensure your API key is available. If using GitHub Actions for deployment, add it to your repository secrets.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+3. **Build and Deploy**:
+   ```bash
+   npm run build
+   ```
+   The project is configured for static hosting. Simply point GitHub Pages to the `dist` folder.
+
+## 📄 License
+MIT
