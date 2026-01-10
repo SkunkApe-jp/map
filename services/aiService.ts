@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MindMapNode, AISettings } from "../types";
 
-const geminiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Removed global client initialization to follow guidelines for creating instances per-call
 
 const mindMapSchema = {
   type: Type.OBJECT,
@@ -63,7 +63,9 @@ export async function generateMindMap(topic: string, settings: AISettings): Prom
 
   let result;
   if (settings.provider === 'gemini') {
-    const response = await geminiClient.models.generateContent({
+    // Fix: Creating a new GoogleGenAI instance right before the API call as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
@@ -93,7 +95,9 @@ export async function expandNode(parentText: string, settings: AISettings): Prom
 
   let result;
   if (settings.provider === 'gemini') {
-    const response = await geminiClient.models.generateContent({
+    // Fix: Creating a new GoogleGenAI instance right before the API call as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
