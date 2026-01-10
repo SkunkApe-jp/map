@@ -151,33 +151,22 @@ const App: React.FC = () => {
                 Harness AI to transform any topic into a beautiful, hierarchical network. Double-click to dive deeper into any node.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                 {['The History of AI', 'Photosynthesis', 'Quantum Computing'].map(t => (
-                   <button 
-                    key={t}
-                    onClick={() => { setTopic(t); handleGenerate(); }}
-                    className="flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-700 font-bold hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
-                   >
-                     {t}
-                     <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-600" />
-                   </button>
-                 ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-8 pt-12 border-t border-slate-200/60 max-w-lg mx-auto">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Globe className="w-5 h-5" /></div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Multi-Model</span>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><Zap className="w-5 h-5" /></div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Instant Feed</span>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><MousePointer2 className="w-5 h-5" /></div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Interactive</span>
-                </div>
-              </div>
+              <form onSubmit={handleGenerate} className="md:hidden w-full max-w-md mx-auto space-y-3">
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Enter topic..."
+                  className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !topic.trim()}
+                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold shadow-lg"
+                >
+                  {isLoading ? 'Thinking...' : 'Start Building'}
+                </button>
+              </form>
             </div>
           </div>
         )}
