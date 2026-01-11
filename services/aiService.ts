@@ -64,7 +64,7 @@ export async function generateMindMap(topic: string, settings: AISettings): Prom
   let result;
   if (settings.provider === 'gemini') {
     // Fix: Creating a new GoogleGenAI instance right before the API call as per guidelines
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -96,7 +96,7 @@ export async function expandNode(parentText: string, settings: AISettings): Prom
   let result;
   if (settings.provider === 'gemini') {
     // Fix: Creating a new GoogleGenAI instance right before the API call as per guidelines
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
