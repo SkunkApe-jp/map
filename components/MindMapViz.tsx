@@ -62,9 +62,23 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
       svg.call(zoom.transform, d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8));
     }
 
-    const treeLayout = d3.tree<MindMapNode>().nodeSize([70, 280]);
+  const treeLayout = d3.tree<MindMapNode>().nodeSize([120, 360]);67
     const root = d3.hierarchy(data);
     treeLayout(root);
+        
+    // Apply collision force to prevent node overlap
+    const nodes_data = root.descendants();
+    const simulation = d3.forceSimulation(nodes_data)
+      .force('collide', d3.forceCollide().radius(() => 75))
+      .stop();
+    
+    for (let i = 0; i < 100; i++) simulation.tick();
+    
+    // Update node positions after collision detection
+    nodes_data.forEach(d => {
+      d.x = d.x;
+      d.y = d.y;
+    });
 
     const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
