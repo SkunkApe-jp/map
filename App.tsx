@@ -4,6 +4,7 @@ import { Search, Sparkles, RotateCcw, MousePointer2, Settings as SettingsIcon, X
 import { MindMapNode, AISettings } from './types';
 import { generateMindMap, expandNode } from './services/aiService';
 import MindMapViz from './components/MindMapViz';
+import { useTranslation, Trans } from 'react-i18next';
 
 const DEFAULT_SETTINGS: AISettings = {
   provider: 'gemini',
@@ -13,6 +14,7 @@ const DEFAULT_SETTINGS: AISettings = {
 };
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const [topic, setTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mindMapData, setMindMapData] = useState<MindMapNode | null>(() => {
@@ -48,7 +50,7 @@ const App: React.FC = () => {
       const data = await generateMindMap(topic, settings);
       setMindMapData(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to generate mind map.');
+      setError(err.message || t('generateMapFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -75,14 +77,14 @@ const App: React.FC = () => {
       };
       setMindMapData(prev => prev ? updateTree(prev) : null);
     } catch (err: any) {
-      setError(err.message || 'Failed to expand node.');
+      setError(err.message || t('expandNodeFailed'));
     } finally {
       setIsLoading(false);
     }
   }, [isLoading, settings]);
 
   const reset = () => {
-    if(confirm("Are you sure you want to clear this mind map?")) {
+    if(confirm(t('clearMapConfirmation'))) {
       setMindMapData(null);
       setTopic('');
       setError(null);
@@ -96,7 +98,7 @@ const App: React.FC = () => {
           <div className="bg-white border border-slate-200 p-2 rounded-xl shadow-sm">
             <MapIcon className="w-5 h-5 text-slate-300" strokeWidth={1.5} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Map</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">{t('map')}</h1>
         </div>
 
         <form onSubmit={handleGenerate} className="flex-1 max-w-2xl mx-12 hidden md:flex items-center gap-3">
@@ -106,7 +108,7 @@ const App: React.FC = () => {
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter a concept, topic, or problem..."
+              placeholder={t('enterTopicPlaceholder')}
               className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-11 pr-4 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm font-medium outline-none"
             />
           </div>
@@ -115,17 +117,17 @@ const App: React.FC = () => {
             disabled={isLoading || !topic.trim()}
             className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-8 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-slate-200"
           >
-            {isLoading ? 'Thinking...' : 'Generate'}
+            {isLoading ? t('thinking') : t('generate')}
           </button>
         </form>
 
         <div className="flex items-center gap-1">
           {mindMapData && (
-            <button onClick={reset} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title="Clear Map">
+            <button onClick={reset} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title={t('clearMap')}>
               <RotateCcw className="w-5 h-5" />
             </button>
           )}
-          <button onClick={() => setShowSettings(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title="Settings">
+          <button onClick={() => setShowSettings(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all" title={t('settings')}>
             <SettingsIcon className="w-5 h-5" />
           </button>
         </div>
@@ -142,13 +144,15 @@ const App: React.FC = () => {
           <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
             <div className="max-w-2xl w-full text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
               <div className="inline-flex px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">
-                Next-Gen Visualization
+                {t('nextGenVisualization')}
               </div>
               <h2 className="text-6xl font-black text-slate-900 tracking-tighter leading-[1.1]">
-                Visualize your <span className="text-slate-400 bg-clip-text">complex thoughts</span> effortlessly.
+                <Trans i18nKey="visualizeComplexThoughts">
+                  Visualize your <span className="text-slate-400 bg-clip-text">complex thoughts</span> effortlessly.
+                </Trans>
               </h2>
               <p className="text-slate-500 text-xl font-medium max-w-xl mx-auto leading-relaxed">
-                Harness AI to transform any topic into a beautiful, hierarchical network. Double-click to dive deeper into any node.
+                {t('harnessAi')}
               </p>
               
               <form onSubmit={handleGenerate} className="md:hidden w-full max-w-md mx-auto space-y-3">
@@ -156,7 +160,7 @@ const App: React.FC = () => {
                   type="text"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Enter topic..."
+                  placeholder={t('enterTopic')}
                   className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 <button
@@ -164,7 +168,7 @@ const App: React.FC = () => {
                   disabled={isLoading || !topic.trim()}
                   className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold shadow-lg"
                 >
-                  {isLoading ? 'Thinking...' : 'Start Building'}
+                  {isLoading ? t('thinking') : t('startBuilding')}
                 </button>
               </form>
             </div>
@@ -178,9 +182,9 @@ const App: React.FC = () => {
               <MapIcon className="w-12 h-12 text-slate-300 relative z-10 animate-bounce" />
             </div>
             <p className="mt-8 text-slate-900 font-bold text-lg tracking-tight">
-              Generating your vision...
+              {t('generatingVision')}
             </p>
-            <p className="text-slate-400 text-sm font-medium mt-1">Using {settings.provider === 'gemini' ? 'Google Gemini 3' : settings.openaiModel}</p>
+            <p className="text-slate-400 text-sm font-medium mt-1">{t('usingModel', { model: settings.provider === 'gemini' ? 'Google Gemini 3' : settings.openaiModel })}</p>
           </div>
         )}
 
@@ -199,8 +203,8 @@ const App: React.FC = () => {
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 fade-in duration-300">
             <div className="px-10 py-8 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">AI Settings</h3>
-                <p className="text-slate-500 text-sm font-medium">Configure your intelligent core.</p>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{t('aiSettings')}</h3>
+                <p className="text-slate-500 text-sm font-medium">{t('configureCore')}</p>
               </div>
               <button onClick={() => setShowSettings(false)} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-400 transition-all">
                 <X className="w-6 h-6" />
@@ -208,7 +212,7 @@ const App: React.FC = () => {
             </div>
             <div className="px-10 pb-10 space-y-8">
               <div className="space-y-3">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Model Provider</label>
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('modelProvider')}</label>
                 <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
                   {['gemini', 'openai'].map((p) => (
                     <button
@@ -226,7 +230,7 @@ const App: React.FC = () => {
                 {settings.provider === 'openai' ? (
                   <div className="space-y-5 animate-in slide-in-from-top-4 duration-300">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Base Endpoint</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">{t('baseEndpoint')}</label>
                       <input
                         type="text"
                         value={settings.openaiEndpoint}
@@ -237,7 +241,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Model ID</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">{t('modelId')}</label>
                         <input
                           type="text"
                           value={settings.openaiModel}
@@ -247,7 +251,7 @@ const App: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">API Key</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">{t('apiKey')}</label>
                         <input
                           type="password"
                           value={settings.openaiApiKey}
@@ -262,8 +266,8 @@ const App: React.FC = () => {
                   <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 flex gap-4 animate-in slide-in-from-bottom-4 duration-300">
                     <div className="bg-blue-600 p-2.5 rounded-xl h-fit shadow-lg shadow-blue-200"><Zap className="w-5 h-5 text-white" /></div>
                     <div>
-                      <h4 className="font-bold text-blue-900 mb-1">Standard Gemini Access</h4>
-                      <p className="text-blue-600/70 text-sm font-medium leading-snug">The app is using the pre-configured system key. No manual configuration required for standard usage.</p>
+                      <h4 className="font-bold text-blue-900 mb-1">{t('standardGeminiAccess')}</h4>
+                      <p className="text-blue-600/70 text-sm font-medium leading-snug">{t('geminiAccessInfo')}</p>
                     </div>
                   </div>
                 )}
@@ -273,7 +277,7 @@ const App: React.FC = () => {
                 onClick={() => setShowSettings(false)}
                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-2xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all mt-4"
               >
-                Apply Changes
+                {t('applyChanges')}
               </button>
             </div>
           </div>

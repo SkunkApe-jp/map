@@ -1,4 +1,3 @@
-
 {
   "name": "mindspark-ai",
   "version": "1.0.0",
@@ -7,21 +6,23 @@
   "dependencies": {
     "@google/genai": "^1.35.0",
     "d3": "^7.9.0",
+    "i18next": "^25.7.4",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-i18next": "^16.5.2"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5",
-    "@types/node": "^20.0.0",
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.2.0"
+    "vite": "^5.0.0"
   },
   "scripts": {
     "dev": "vite",
