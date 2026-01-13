@@ -1,9 +1,10 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search, Sparkles, RotateCcw, MousePointer2, Settings as SettingsIcon, X, Globe, Zap, ArrowRight, Ship as MapIcon } from 'lucide-react';
+import { Search, Sparkles, RotateCcw, MousePointer2, Settings as SettingsIcon, X, Globe, Zap, ArrowRight, Ship as MapIcon, MessageCircle } from 'lucide-react';
 import { MindMapNode, AISettings } from './types';
-import { generateMindMap, expandNode } from './services/aiService';
+import { generateMindMap, expandNode, answerQuestion } from './services/aiService';
 import MindMapViz from './components/MindMapViz';
+import MarkdownMessage from './components/MarkdownMessage';
 import { useTranslation, Trans } from 'react-i18next';
 
 const DEFAULT_SETTINGS: AISettings = {
@@ -17,6 +18,13 @@ const App: React.FC = () => {
   const { t } = useTranslation();
   const [topic, setTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAsking, setIsAsking] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [qaHistory, setQaHistory] = useState<Array<{ q: string; a: string }>>(() => {
+    const saved = localStorage.getItem('mindspark_qna_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [mindMapData, setMindMapData] = useState<MindMapNode | null>(() => {
     const saved = localStorage.getItem('mindspark_active_map');
     return saved ? JSON.parse(saved) : null;
@@ -39,6 +47,10 @@ const App: React.FC = () => {
       localStorage.removeItem('mindspark_active_map');
     }
   }, [mindMapData]);
+
+  useEffect(() => {
+    localStorage.setItem('mindspark_qna_history', JSON.stringify(qaHistory));
+  }, [qaHistory]);
 
   const handleGenerate = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -88,6 +100,24 @@ const App: React.FC = () => {
       setMindMapData(null);
       setTopic('');
       setError(null);
+    }
+  };
+
+  const handleAsk = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = question.trim();
+    if (!q || isAsking) return;
+
+    setIsAsking(true);
+    setError(null);
+    try {
+      const a = await answerQuestion(q, settings);
+      setQaHistory(prev => [{ q, a }, ...prev].slice(0, 20));
+      setQuestion('');
+    } catch (err: any) {
+      setError(err.message || 'Q&A failed');
+    } finally {
+      setIsAsking(false);
     }
   };
 
@@ -195,6 +225,89 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Chat bubble + popover */}
+      <div className="fixed bottom-6 right-6 z-[80]">
+        <button
+          type="button"
+          onClick={() => setIsChatOpen(v => !v)}
+          className="w-14 h-14 rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-2xl shadow-slate-300 flex items-center justify-center transition-all active:scale-95"
+          title={t('ask')}
+        >
+          <MessageCircle className="w-6 h-6" />
+        </button>
+
+        {isChatOpen && (
+          <div className="absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-3rem)] bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="text-sm font-black text-slate-900">{t('ask')}</div>
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[320px] overflow-auto bg-slate-50 px-5 py-4">
+              {qaHistory.length === 0 ? (
+                <div className="text-sm text-slate-500 font-medium leading-relaxed">
+                  {t('qnaPlaceholder')}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {qaHistory.map((item, idx) => (
+                    <div key={idx} className="text-sm">
+                      <div className="font-black text-slate-900">Q: <span className="font-medium">{item.q}</span></div>
+                      <div className="text-slate-700 mt-1">
+                        <div className="font-black text-slate-900">A:</div>
+                        <MarkdownMessage content={item.a} />
+                      </div>
+                    </div>
+                  ))}
+                  {isAsking && (
+                    <div className="text-sm text-slate-500 font-medium">{t('thinking')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-white">
+              <form onSubmit={handleAsk} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder={t('qnaPlaceholder')}
+                  className="flex-1 bg-slate-100 border-none rounded-2xl py-3 px-4 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm font-medium outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isAsking || !question.trim()}
+                  className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-4 py-3 rounded-2xl text-sm font-black flex items-center gap-2 transition-all active:scale-95"
+                  title={t('ask')}
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </form>
+
+              {qaHistory.length > 0 && (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setQaHistory([])}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all"
+                  >
+                    {t('clearQna')}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Settings Modal */}
       {showSettings && (

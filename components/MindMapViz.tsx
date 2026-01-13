@@ -57,12 +57,16 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
     zoomRef.current = zoom;
     svg.call(zoom);
 
+    // Prevent double-click from triggering the built-in zoom behavior,
+    // so double-click can be reserved for AI expand on nodes.
+    svg.on('dblclick.zoom', null);
+
     // Initial position if first load
     if (!g.attr('transform')) {
       svg.call(zoom.transform, d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8));
     }
 
-  const treeLayout = d3.tree<MindMapNode>().nodeSize([120, 360]);67
+    const treeLayout = d3.tree<MindMapNode>().nodeSize([120, 360]);
     const root = d3.hierarchy(data);
     treeLayout(root);
         
@@ -82,13 +86,30 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
 
     const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
+    const nodeBoxWidth = (node: any) => Math.max(140, (node.data?.text?.length || 0) * 9 + 24);
+
     // Links
     const linkGenerator = d3.linkHorizontal<any, any>()
       .x(d => d.y)
       .y(d => d.x);
 
+    const adjustedLinks = root.links().map((l: any) => {
+      const sourceWidth = nodeBoxWidth(l.source);
+      return {
+        source: {
+          x: l.source.x,
+          y: l.source.y + (sourceWidth - 10)
+        },
+        target: {
+          x: l.target.x,
+          y: l.target.y - 10
+        },
+        _key: `${l.source.data.id}-${l.target.data.id}`
+      };
+    });
+
     const links = g.selectAll('.link')
-      .data(root.links(), (d: any) => `${d.source.data.id}-${d.target.data.id}`);
+      .data(adjustedLinks, (d: any) => d._key);
 
     links.enter()
       .append('path')

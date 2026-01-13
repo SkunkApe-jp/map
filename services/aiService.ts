@@ -55,6 +55,48 @@ async function callOpenAI(settings: AISettings, prompt: string): Promise<any> {
   return JSON.parse(content);
 }
 
+async function callOpenAIText(settings: AISettings, prompt: string): Promise<string> {
+  const response = await fetch(`${settings.openaiEndpoint.replace(/\/$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: settings.openaiModel,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+export async function answerQuestion(question: string, settings: AISettings): Promise<string> {
+  const q = question.trim();
+  if (!q) return '';
+
+  if (settings.provider === 'gemini') {
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `You are a helpful assistant.\n\nQuestion: ${q}`
+    });
+    return response.text || '';
+  }
+
+  return callOpenAIText(settings, q);
+}
+
 export async function generateMindMap(topic: string, settings: AISettings): Promise<MindMapNode> {
   const prompt = `Create a comprehensive mind map for the topic: "${topic}". 
   Focus on key concepts, sub-topics, and interesting relations. 
