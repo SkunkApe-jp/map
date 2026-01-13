@@ -66,8 +66,11 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
       svg.call(zoom.transform, d3.zoomIdentity.translate(dimensions.width / 4, dimensions.height / 2).scale(0.8));
     }
 
-    const treeLayout = d3.tree<MindMapNode>().nodeSize([120, 360]);
     const root = d3.hierarchy(data);
+    const nodeBoxWidth = (node: any) => Math.max(140, (node.data?.text?.length || 0) * 9 + 24);
+    const maxNodeWidth = (d3.max(root.descendants(), d => nodeBoxWidth(d)) as number | undefined) || 140;
+    const ySpacing = Math.max(360, maxNodeWidth + 160);
+    const treeLayout = d3.tree<MindMapNode>().nodeSize([120, ySpacing]);
     treeLayout(root);
         
     // Apply collision force to prevent node overlap
@@ -86,23 +89,25 @@ const MindMapViz: React.FC<Props> = ({ data, onNodeClick, onNodeDoubleClick }) =
 
     const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
-    const nodeBoxWidth = (node: any) => Math.max(140, (node.data?.text?.length || 0) * 9 + 24);
-
     // Links
     const linkGenerator = d3.linkHorizontal<any, any>()
       .x(d => d.y)
       .y(d => d.x);
 
+    const edgePadding = 6;
     const adjustedLinks = root.links().map((l: any) => {
       const sourceWidth = nodeBoxWidth(l.source);
+      const sourceRightEdge = l.source.y + (sourceWidth - 10) + edgePadding;
+      const targetLeftEdge = l.target.y - 10 - edgePadding;
+      const startY = Math.min(sourceRightEdge, targetLeftEdge);
       return {
         source: {
           x: l.source.x,
-          y: l.source.y + (sourceWidth - 10)
+          y: startY
         },
         target: {
           x: l.target.x,
-          y: l.target.y - 10
+          y: targetLeftEdge
         },
         _key: `${l.source.data.id}-${l.target.data.id}`
       };
