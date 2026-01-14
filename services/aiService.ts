@@ -56,9 +56,10 @@ async function callOpenAI(settings: AISettings, prompt: string): Promise<any> {
 }
 
 export async function generateMindMap(topic: string, settings: AISettings): Promise<MindMapNode> {
-  const prompt = `Create a comprehensive mind map for the topic: "${topic}". 
-  Focus on key concepts, sub-topics, and interesting relations. 
+  const prompt = `Create a comprehensive mind map for the topic: "${topic}".
+  Focus on key concepts, sub-topics, and interesting relations.
   Provide a structure with at least 5 main branches and 2-3 sub-branches each.
+  **All output must be in English.**
   Format as JSON matching this schema: { text: string, children: [ { text: string, children: [ { text: string } ] } ] }`;
 
   let result;
@@ -91,6 +92,7 @@ export async function generateMindMap(topic: string, settings: AISettings): Prom
 
 export async function expandNode(parentText: string, settings: AISettings): Promise<MindMapNode[]> {
   const prompt = `Given the node "${parentText}", generate 4-5 relevant sub-topics to expand this mind map node.
+  **All output must be in English.**
   Format as JSON array of objects: [ { "text": "string" } ]`;
 
   let result;
